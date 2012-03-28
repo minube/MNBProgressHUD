@@ -1,13 +1,14 @@
 #Intro
 
 This is a lightweight fork from https://github.com/samvermette/SVProgressHUD that simply allows you to create a new instance of a Progress HUD each time and have it as a subview of your controller's view, instead of having a shared view for all controllers.
+
 This prevents the issue where you push another controller while there was a request in progress, that controller also needs a HUD, starts a request, and then the first controller hides the HUD because its request finished, and the second controller loses the HUD even though its request is still in progress.
 
 #Features
 
-* optional loading, success and error status messages
-* automatic positioning based on device type, orientation and keyboard visibility
-* optionally disable user interactions while the HUD is showing with the @maskType@ parameter
+- optional loading, success and error status messages.
+- automatic positioning based on device type, orientation and keyboard visibility.
+- optionally disable user interactions while the HUD is showing with the maskType parameter.
 
 #Usage
 
