@@ -42,3 +42,6 @@ enum {
     JSProgressHUDMaskTypeGradient // disable user interactions, dim background UI with translucent radial gradient (a-la-alertView)
 };
 ```
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/JaviSoto/jsprogresshud/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
