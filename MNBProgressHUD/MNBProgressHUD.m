@@ -15,17 +15,17 @@
  */
 
 //
-//  JSProgressHUD.m
+//  MNBProgressHUD.m
 //
-//  Fork from: https://github.com/samvermette/SVProgressHUD
+//  Fork from: https://github.com/JaviSoto/JSProgressHUD
 //
 
-#import "JSProgressHUD.h"
+#import "MNBProgressHUD.h"
 #import <QuartzCore/QuartzCore.h>
 
-@interface JSProgressHUD ()
+@interface MNBProgressHUD ()
 
-@property (nonatomic, readwrite) JSProgressHUDMaskType maskType;
+@property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (nonatomic, retain) NSTimer *fadeOutTimer;
 
 @property (nonatomic, readonly) UIView *overlayView;
@@ -47,13 +47,13 @@
 
 @end
 
-@implementation JSProgressHUD
+@implementation MNBProgressHUD
 
 @synthesize overlayView, hudView, maskType, fadeOutTimer, stringLabel, imageView, spinnerView, visibleKeyboardHeight;
 
-+ (JSProgressHUD *)progressViewInView:(UIView *)view
++ (MNBProgressHUD *)progressViewInView:(UIView *)view
 {	
-	JSProgressHUD *progressView = [[JSProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+	MNBProgressHUD *progressView = [[MNBProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     [view addSubview:progressView->overlayView];
 	
     return [progressView autorelease];
@@ -83,10 +83,10 @@
 
 - (void)showWithStatus:(NSString *)status
 {
-    [self showWithStatus:status maskType:JSProgressHUDMaskTypeNone];
+    [self showWithStatus:status maskType:MNBProgressHUDMaskTypeNone];
 }
 
-- (void)showWithMaskType:(JSProgressHUDMaskType)_maskType
+- (void)showWithMaskType:(MNBProgressHUDMaskType)_maskType
 {
     [self showWithStatus:nil maskType:_maskType];
 }
@@ -128,14 +128,14 @@
     
     switch (self.maskType) {
             
-        case JSProgressHUDMaskTypeBlack:
+        case MNBProgressHUDMaskTypeBlack:
         {
             [[UIColor colorWithWhite:0 alpha:0.5] set];
             CGContextFillRect(context, self.bounds);
             break;
         }
             
-        case JSProgressHUDMaskTypeGradient:
+        case MNBProgressHUDMaskTypeGradient:
         {            
             size_t locationsCount = 2;
             CGFloat locations[2] = {0.0f, 1.0f};
@@ -353,7 +353,7 @@
 
 #pragma mark - Master show/dismiss methods
 
-- (void)showWithStatus:(NSString *)string maskType:(JSProgressHUDMaskType)hudMaskType
+- (void)showWithStatus:(NSString *)string maskType:(MNBProgressHUDMaskType)hudMaskType
 {
 	self.fadeOutTimer = nil;
 	
@@ -363,7 +363,7 @@
 	[self setStatus:string];
 	[self.spinnerView startAnimating];
     
-    if (self.maskType != JSProgressHUDMaskTypeNone)
+    if (self.maskType != MNBProgressHUDMaskTypeNone)
     {
         self.overlayView.userInteractionEnabled = YES;
     }
@@ -407,11 +407,11 @@
 	
 	if(error)
     {
-		self.imageView.image = [UIImage imageNamed:@"JSProgressHUD.bundle/error.png"];
+		self.imageView.image = [UIImage imageNamed:@"MNBProgressHUD.bundle/error.png"];
     }
 	else
     {
-		self.imageView.image = [UIImage imageNamed:@"JSProgressHUD.bundle/success.png"];
+		self.imageView.image = [UIImage imageNamed:@"MNBProgressHUD.bundle/success.png"];
     }
 	
 	self.imageView.hidden = NO;

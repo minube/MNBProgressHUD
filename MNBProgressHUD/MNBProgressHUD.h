@@ -15,31 +15,31 @@
  */
 
 //
-//  JSProgressHUD.h
+//  MNBProgressHUD.h
 //
-//  Fork from: https://github.com/samvermette/SVProgressHUD
+//  Fork from: https://github.com/JaviSoto/JSProgressHUD
 //
 
 #import <UIKit/UIKit.h>
 #import <AvailabilityMacros.h>
 
 enum {
-    JSProgressHUDMaskTypeNone = 1, // allow user interactions while HUD is displayed
-    JSProgressHUDMaskTypeClear, // don't allow
-    JSProgressHUDMaskTypeBlack, // don't allow and dim the UI in the back of the HUD
-    JSProgressHUDMaskTypeGradient // don't allow and dim the UI with a a-la-alert-view bg gradient
+    MNBProgressHUDMaskTypeNone = 1, // allow user interactions while HUD is displayed
+    MNBProgressHUDMaskTypeClear, // don't allow
+    MNBProgressHUDMaskTypeBlack, // don't allow and dim the UI in the back of the HUD
+    MNBProgressHUDMaskTypeGradient // don't allow and dim the UI with a a-la-alert-view bg gradient
 };
 
-typedef NSUInteger JSProgressHUDMaskType;
+typedef NSUInteger MNBProgressHUDMaskType;
 
-@interface JSProgressHUD : UIView
+@interface MNBProgressHUD : UIView
 
-+ (JSProgressHUD *)progressViewInView:(UIView *)view;
++ (MNBProgressHUD *)progressViewInView:(UIView *)view;
 
 - (void)show;
 - (void)showWithStatus:(NSString *)status;
-- (void)showWithStatus:(NSString *)status maskType:(JSProgressHUDMaskType)maskType;
-- (void)showWithMaskType:(JSProgressHUDMaskType)maskType;
+- (void)showWithStatus:(NSString *)status maskType:(MNBProgressHUDMaskType)maskType;
+- (void)showWithMaskType:(MNBProgressHUDMaskType)maskType;
 
 - (void)showSuccessWithStatus:(NSString *)string;
 - (void)setStatus:(NSString *)string; // change the HUD loading status while it's showing
