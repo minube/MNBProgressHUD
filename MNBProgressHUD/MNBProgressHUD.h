@@ -7,8 +7,8 @@
 #import <UIKit/UIKit.h>
 #import <AvailabilityMacros.h>
 
-enum {
-    MNBProgressHUDMaskTypeNone = 1, // allow user interactions while HUD is displayed
+typedef NS_ENUM(NSUInteger, MNBProgressHUDMaskType) {
+    MNBProgressHUDMaskTypeNone, // allow user interactions while HUD is displayed
     MNBProgressHUDMaskTypeClear, // don't allow
     MNBProgressHUDMaskTypeBlack, // don't allow and dim the UI in the back of the HUD
     MNBProgressHUDMaskTypeGradient // don't allow and dim the UI with a a-la-alert-view bg gradient
