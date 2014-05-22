@@ -14,8 +14,6 @@ typedef NS_ENUM(NSUInteger, MNBProgressHUDMaskType) {
     MNBProgressHUDMaskTypeGradient // don't allow and dim the UI with a a-la-alert-view bg gradient
 };
 
-typedef NSUInteger MNBProgressHUDMaskType;
-
 typedef void (^ShowCompletionCallback) (BOOL finished);
 typedef void (^DismissCompletionCallback) (BOOL finished);
 
@@ -31,6 +29,7 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 @property (nonatomic, assign) BOOL ignoreDeviceRotation;
 @property (nonatomic, readonly) UIView *overlayView;
 @property (nonatomic, assign) CGFloat progressBar;
+@property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (copy, nonatomic) ShowCompletionCallback showCallback;
 
 + (MNBProgressHUD *)progressViewInView:(UIView *)view;
@@ -41,6 +40,7 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 - (void)showWithMaskType:(MNBProgressHUDMaskType)maskType;
 - (void)showSuccessWithStatus:(NSString *)string;
 - (void)setStatus:(NSString *)string; // change the HUD loading status while it's showing
+- (void)positionHUD:(NSNotification*)notification;
 // minube style HUDS
 - (void)showMNStyle;
 - (void)showMNStyleWithStatus:(NSString *)status;
@@ -50,7 +50,6 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 - (void)showNoCompletionWithStatus:(NSString *)status subtitle:(NSString *)subtitle;
 - (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
 - (void)showNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
-- (void)showUsers:(NSArray *)users withStatus:(NSString *)status afterDelay:(NSTimeInterval)seconds maskType:(MNBProgressHUDMaskType)hudMaskType;
 
 - (void)dismiss; // simply dismiss the HUD with a fade+scale out animation
 - (void)dismissWithSuccess:(NSString *)successString; // also displays the success icon image

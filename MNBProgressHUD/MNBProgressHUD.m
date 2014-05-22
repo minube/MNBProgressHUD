@@ -18,8 +18,6 @@
 #define createBlockSafeSelf() __block typeof(self) blockSafeSelf = self;
 
 @interface MNBProgressHUD ()
-
-@property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (nonatomic, retain) NSTimer *fadeOutTimer;
 @property (copy, nonatomic) DismissCompletionCallback callback;
 
@@ -28,7 +26,6 @@
 - (void)setStatus:(NSString*)string;
 - (void)registerNotifications;
 - (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle;
-- (void)positionHUD:(NSNotification*)notification;
 
 - (void)dismiss;
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error;
