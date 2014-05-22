@@ -1,19 +1,3 @@
-/* 
- Copyright 2012 Javier Soto (ios@javisoto.es)
- 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
- 
- http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License. 
- */
-
 //
 //  MNBProgressHUD.h
 //
@@ -32,7 +16,15 @@ enum {
 
 typedef NSUInteger MNBProgressHUDMaskType;
 
+typedef void (^ShowCompletionCallback) (BOOL finished);
+typedef void (^DismissCompletionCallback) (BOOL finished);
+
 @interface MNBProgressHUD : UIView
+
+@property (nonatomic, assign) BOOL ignoreDeviceRotation;
+@property (nonatomic, readonly) UIView *overlayView;
+@property (nonatomic, assign) CGFloat progressBar;
+@property (copy, nonatomic) ShowCompletionCallback showCallback;
 
 + (MNBProgressHUD *)progressViewInView:(UIView *)view;
 
@@ -40,14 +32,31 @@ typedef NSUInteger MNBProgressHUDMaskType;
 - (void)showWithStatus:(NSString *)status;
 - (void)showWithStatus:(NSString *)status maskType:(MNBProgressHUDMaskType)maskType;
 - (void)showWithMaskType:(MNBProgressHUDMaskType)maskType;
-
 - (void)showSuccessWithStatus:(NSString *)string;
 - (void)setStatus:(NSString *)string; // change the HUD loading status while it's showing
+// minube style HUDS
+- (void)showMNStyle;
+- (void)showMNStyleWithStatus:(NSString *)status;
+- (void)showMNStyleWithStatus:(NSString *)string maskType:(MNBProgressHUDMaskType)hudMaskType;
+- (void)showMNStyleSuccessMessage:(NSString *)string subtitle:(NSString *)subtitle;
+- (void)showMNStyleErrorMessage:(NSString *)string subtitle:(NSString *)subtitle;
+- (void)showNoCompletionWithStatus:(NSString *)status subtitle:(NSString *)subtitle;
+- (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
+- (void)showNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
+- (void)showUsers:(NSArray *)users withStatus:(NSString *)status afterDelay:(NSTimeInterval)seconds maskType:(MNBProgressHUDMaskType)hudMaskType;
 
 - (void)dismiss; // simply dismiss the HUD with a fade+scale out animation
 - (void)dismissWithSuccess:(NSString *)successString; // also displays the success icon image
 - (void)dismissWithSuccess:(NSString *)successString afterDelay:(NSTimeInterval)seconds;
 - (void)dismissWithError:(NSString *)errorString; // also displays the error icon image
 - (void)dismissWithError:(NSString *)errorString afterDelay:(NSTimeInterval)seconds;
+// minube style HUDS
+- (void)dismissMNStyleWithSuccess:(NSString*)successString subtitle:(NSString *)subtitle;
+- (void)dismissMNStyleWithSuccess:(NSString *)successString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds;
+- (void)dismissMNStyleWithError:(NSString*)errorString subtitle:(NSString *)subtitle;
+- (void)dismissMNStyleWithError:(NSString *)errorString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds;
+- (void)dismissWithLocationError:(NSString *)errorString subtitleError:(NSString *)subtitleError;
+- (void)dismissNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds;
+- (void)dismissWithNetworkError:(NSString *)errorString subtitleError:(NSString *)subtitleError dissmissAnimationFinishedCallback:(DismissCompletionCallback)callback;
 
 @end

@@ -1,38 +1,33 @@
-/* 
- Copyright 2012 Javier Soto (ios@javisoto.es)
- 
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- You may obtain a copy of the License at
- 
- http://www.apache.org/licenses/LICENSE-2.0
- 
- Unless required by applicable law or agreed to in writing, software
- distributed under the License is distributed on an "AS IS" BASIS,
- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- See the License for the specific language governing permissions and
- limitations under the License. 
- */
-
 //
 //  MNBProgressHUD.m
 //
-//  Fork from: https://github.com/JaviSoto/JSProgressHUD
+//  Fork from: https://github.com/samvermette/SVProgressHUD
 //
 
 #import "MNBProgressHUD.h"
 #import <QuartzCore/QuartzCore.h>
+
+#define kAfterDelay 3.0
+#define kHudWidth 250
+#define kHudHeight 170
+#define kHudHeightOneLine 140
+
+#define createBlockSafeSelf() __block typeof(self) blockSafeSelf = self;
 
 @interface MNBProgressHUD ()
 
 @property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (nonatomic, retain) NSTimer *fadeOutTimer;
 
-@property (nonatomic, readonly) UIView *overlayView;
 @property (nonatomic, readonly) UIView *hudView;
 @property (nonatomic, readonly) UILabel *stringLabel;
+@property (nonatomic, readonly) UILabel *subtitleLabel;
 @property (nonatomic, readonly) UIImageView *imageView;
 @property (nonatomic, readonly) UIActivityIndicatorView *spinnerView;
+@property (nonatomic, readonly) UIView *loadingView;
+@property (nonatomic, readonly) UIView *loadingBarView;
+@property (nonatomic, readonly) UIView *avatarsContainer;
+@property (copy, nonatomic) DismissCompletionCallback callback;
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;
 
@@ -44,15 +39,21 @@
 - (void)dismiss;
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error;
 - (void)dismissWithStatus:(NSString*)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds;
+- (void)dismissLocalizationErrorWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds;
+- (void)dismissNetworkErrorWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds;
 
 @end
 
 @implementation MNBProgressHUD
 
-@synthesize overlayView, hudView, maskType, fadeOutTimer, stringLabel, imageView, spinnerView, visibleKeyboardHeight;
+@synthesize overlayView, hudView, maskType, fadeOutTimer, stringLabel, subtitleLabel, imageView, spinnerView, visibleKeyboardHeight;
+@synthesize loadingView, loadingBarView, progressBar = _progressBar;
+@synthesize callback = _callback;
+@synthesize showCallback = _showCallback;
+@synthesize avatarsContainer;
 
 + (MNBProgressHUD *)progressViewInView:(UIView *)view
-{	
+{
 	MNBProgressHUD *progressView = [[MNBProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     [view addSubview:progressView->overlayView];
 	
@@ -60,11 +61,12 @@
 }
 
 - (id)initWithFrame:(CGRect)frame
-{	
+{
     if ((self = [super initWithFrame:frame]))
     {
         overlayView = [[UIView alloc] initWithFrame:frame];
         [overlayView addSubview:self];
+        overlayView.hidden=YES;
 		self.userInteractionEnabled = NO;
         self.backgroundColor = [UIColor clearColor];
 		self.alpha = 0;
@@ -81,9 +83,29 @@
 	[self showWithStatus:nil];
 }
 
+- (void)showMNStyle
+{
+	[self showMNStyleWithStatus:nil];
+}
+
 - (void)showWithStatus:(NSString *)status
 {
     [self showWithStatus:status maskType:MNBProgressHUDMaskTypeNone];
+}
+
+- (void)showMNStyleWithStatus:(NSString *)status
+{
+    [self showMNStyleWithStatus:status maskType:MNBProgressHUDMaskTypeNone];
+}
+
+- (void)showNoCompletionWithStatus:(NSString *)status subtitle:(NSString *)subtitle
+{
+    [self showNoCompletionWithStatus:status subtitle:subtitle afterDelay:kAfterDelay maskType:MNBProgressHUDMaskTypeNone];
+}
+
+- (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle
+{
+    [self showLoadingWithStatus:string subtitle:subtitle maskType:MNBProgressHUDMaskTypeClear];
 }
 
 - (void)showWithMaskType:(MNBProgressHUDMaskType)_maskType
@@ -94,7 +116,25 @@
 - (void)showSuccessWithStatus:(NSString *)string
 {
     [self show];
-    [self dismissWithSuccess:string afterDelay:1];
+    [self dismissWithSuccess:string afterDelay:2];
+}
+
+- (void)showNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle
+{
+    [self show];
+    [self dismissNoPlacesWithStatus:string subtitle:subtitle afterDelay:4];
+}
+
+- (void)showMNStyleSuccessMessage:(NSString *)string subtitle:(NSString *)subtitle
+{
+    [self show];
+    [self dismissMNStyleWithSuccess:string subtitle:subtitle afterDelay:kAfterDelay];
+}
+
+- (void)showMNStyleErrorMessage:(NSString *)string subtitle:(NSString *)subtitle
+{
+    [self show];
+    [self dismissMNStyleWithError:string subtitle:subtitle afterDelay:kAfterDelay];
 }
 
 #pragma mark - Dismiss Methods
@@ -119,6 +159,38 @@
     [self dismissWithStatus:errorString error:YES afterDelay:seconds];
 }
 
+- (void)dismissMNStyleWithSuccess:(NSString*)successString subtitle:(NSString *)subtitle
+{
+	[self dismissMNStyleWithStatus:successString subtitle:subtitle error:NO];
+}
+
+- (void)dismissMNStyleWithSuccess:(NSString *)successString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
+{
+    [self dismissMNStyleWithStatus:successString subtitle:subtitle error:NO afterDelay:seconds];
+}
+
+- (void)dismissMNStyleWithError:(NSString*)errorString subtitle:(NSString *)subtitle
+{
+	[self dismissMNStyleWithStatus:errorString subtitle:subtitle error:YES];
+}
+
+- (void)dismissMNStyleWithError:(NSString *)errorString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
+{
+    [self dismissMNStyleWithStatus:errorString subtitle:subtitle error:YES afterDelay:seconds];
+}
+
+- (void)dismissWithLocationError:(NSString *)errorString subtitleError:(NSString *)subtitleError
+{
+    [self dismissLocalizationErrorWithStatus:errorString subtitle:subtitleError afterDelay:kAfterDelay];
+}
+
+- (void)dismissWithNetworkError:(NSString *)errorString subtitleError:(NSString *)subtitleError dissmissAnimationFinishedCallback:(DismissCompletionCallback)callback
+{
+    self.callback = callback;
+    
+    [self dismissNetworkErrorWithStatus:errorString subtitle:subtitleError afterDelay:kAfterDelay];
+}
+
 #pragma mark - Instance Methods
 
 - (void)drawRect:(CGRect)rect
@@ -136,10 +208,10 @@
         }
             
         case MNBProgressHUDMaskTypeGradient:
-        {            
+        {
             size_t locationsCount = 2;
             CGFloat locations[2] = {0.0f, 1.0f};
-            CGFloat colors[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.75f}; 
+            CGFloat colors[8] = {0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.0f,0.75f};
             CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
             CGGradientRef gradient = CGGradientCreateWithColorComponents(colorSpace, colors, locations, locationsCount);
             CGColorSpaceRelease(colorSpace);
@@ -155,7 +227,15 @@
 }
 
 - (void)setStatus:(NSString *)string
-{	
+{
+    if (self.subtitleLabel) {
+        self.subtitleLabel.hidden = YES;
+    }
+    
+    if (self.loadingView) {
+        self.loadingView.hidden = YES;
+    }
+    
     CGFloat hudWidth = 100;
     CGFloat hudHeight = 100;
     CGFloat stringWidth = 0;
@@ -181,8 +261,8 @@
         }
         else
         {
-            hudWidth += 24;  
-            labelRect = CGRectMake(0, 66, hudWidth, stringHeight);   
+            hudWidth += 24;
+            labelRect = CGRectMake(0, 66, hudWidth, stringHeight);
         }
     }
 	
@@ -204,10 +284,260 @@
     }
 }
 
+- (void)setMNStyleStatus:(NSString *)string
+{
+    if (self.subtitleLabel) {
+        self.subtitleLabel.hidden = YES;
+    }
+    
+    if (self.loadingView) {
+        self.loadingView.hidden = YES;
+    }
+    
+    CGFloat stringWidth = 220;
+    CGFloat stringHeight = 40;
+    CGRect labelRect = CGRectZero;
+    
+    if (string)
+    {
+        CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 105, stringWidth, stringHeight);
+    }
+	
+	self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeight);
+	
+	self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 36);
+	
+	self.stringLabel.hidden = NO;
+	self.stringLabel.text = string;
+	self.stringLabel.frame = labelRect;
+	
+	if (string)
+    {
+		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2), 65);
+    }
+	else
+    {
+		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, ceil(self.hudView.bounds.size.height / 2) + 0.5);
+    }
+    
+    //DebugLog(@"Frame despues del setStatus");
+    //LogFrame(self.hudView.frame);
+}
+
+- (void)setStatus:(NSString *)string subtitle:(NSString *)subtitle
+{
+    if (self.loadingView) {
+        self.loadingView.hidden = YES;
+    }
+    
+    CGFloat stringWidth = 220;
+    CGFloat stringHeight = 40;
+    CGRect labelRect = CGRectZero;
+    
+    if (subtitle && ![subtitle isEqualToString:@""]) {
+        self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeight);
+    } else {
+        self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeightOneLine);
+    }
+    self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 45);
+    
+    if (string)
+    {
+        CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 80, stringWidth, stringHeight);
+    }
+    
+    self.stringLabel.hidden = NO;
+	self.stringLabel.text = string;
+	self.stringLabel.frame = labelRect;
+    
+    stringWidth = 240;
+    stringHeight = 20;
+    if (subtitle && ![subtitle isEqualToString:@""]) {
+        CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 130, stringWidth, stringHeight);
+    }
+    
+    self.subtitleLabel.hidden = NO;
+    self.subtitleLabel.text = subtitle;
+    self.subtitleLabel.frame = labelRect;
+}
+
+- (void)setUsers:(NSArray *)users withStatus:(NSString *)string
+{
+    if (self.loadingView) {
+        self.loadingView.hidden = YES;
+    }
+    
+    CGFloat stringWidth = 258;
+    CGFloat stringHeight = 40;
+    CGRect labelRect = CGRectZero;
+    
+    self.hudView.bounds = CGRectMake(0, 0, 300, 150);
+    
+    self.imageView.hidden = YES;
+    self.subtitleLabel.hidden = YES;
+    
+    if (string)
+    {
+        CGFloat originX = (300 / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 20, stringWidth, stringHeight);
+    }
+    
+    self.stringLabel.hidden = NO;
+	self.stringLabel.text = string;
+    self.stringLabel.backgroundColor = [UIColor clearColor];
+	self.stringLabel.frame = labelRect;
+    
+    if (users.count > 0) {
+        
+        // Add avatars -  max 4
+        int limit = 4;
+        if (users.count < limit) {
+            limit = users.count;
+        }
+        
+        int numberOfViews = limit;
+        if (users.count > 4) {
+            numberOfViews = 5;
+        }
+        
+        CGFloat viewWidth = 0.0f;
+        viewWidth = (50 * numberOfViews) + (numberOfViews - 1) * 2.0f;
+        CGFloat originX = (300 / 2) - (viewWidth / 2);
+        self.avatarsContainer.frame = CGRectMake(originX, CGRectGetMaxY(self.stringLabel.frame) + 20, viewWidth, 50);
+        
+        float gap = 2.0f;
+        for (int i = 0; i < limit; i++) {
+            InvitedUserEntity *contact = [users objectAtIndex:i];
+            UIImageView *avatarView = [[UIImageView alloc] initWithFrame:CGRectMake(0 + (gap * i) + (50 * i), 0, 50, 50)];
+            avatarView.clipsToBounds = YES;
+            avatarView.backgroundColor = colorWithRGBA(255, 255, 255, 0.3);
+            switch (contact.invitedUserType) {
+                case InvitedUserTypeMinube:
+                    [avatarView setImageWithURL:contact.invitedUserAvatarURL completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
+                        
+                    }];
+                    break;
+                case InvitedUserTypeFacebook:
+                    [avatarView setImageWithURL:contact.invitedUserFacebookAvatar completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
+                        
+                    }];
+                    break;
+                case InvitedUserTypeTwitter:
+                    [avatarView setImageWithURL:contact.invitedUserAvatarURL completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
+                        
+                    }];
+                    break;
+                case InvitedUserTypeABook:
+                    if (contact.invitedUserAddressbookImageAvatar) {
+                        avatarView.image = [UIImage imageWithData:contact.invitedUserAddressbookImageAvatar];
+                    } else {
+                        avatarView.image = nil;
+                    }
+                    break;
+                default:
+                    break;
+            };
+            
+            [avatarsContainer addSubview:avatarView];
+            [avatarView release];
+        }
+        if (users.count > 4) {
+            UIView *moreAvatars = [[UIView alloc] initWithFrame:CGRectMake(208, 0, 50, 50)];
+            moreAvatars.backgroundColor = colorWithRGB(29, 34, 41);
+            
+            UILabel *moreAvatarsLabel = [[UILabel alloc] initWithFrame:CGRectMake(8, 8, 34, 35)];
+            moreAvatarsLabel.backgroundColor = colorWithRGB(29, 34, 41);
+            moreAvatarsLabel.textAlignment = NSTextAlignmentCenter;
+            moreAvatarsLabel.textColor = colorWithRGB(97, 101, 106);
+            moreAvatarsLabel.numberOfLines = 2;
+            moreAvatarsLabel.text = [NSString stringWithFormat:NSLocalizedString(@"SharePoiByMinubeActionSheetMoreAvatars", nil), users.count - 4];
+            moreAvatarsLabel.font = [UIFont boldSystemFontOfSize:15];
+            moreAvatarsLabel.minimumScaleFactor = 15;
+            moreAvatarsLabel.adjustsFontSizeToFitWidth = YES;
+            [moreAvatars addSubview:moreAvatarsLabel];
+            [moreAvatarsLabel release];
+            
+            [avatarsContainer addSubview:moreAvatars];
+            [moreAvatars release];
+        }
+    }
+}
+
+- (void)setLoadingViewStatus:(NSString *)string subtitle:(NSString *)subtitle
+{
+    CGFloat stringWidth = 220;
+    CGFloat stringHeight = 40;
+    CGRect labelRect = CGRectZero;
+    
+    self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeight);
+    self.imageView.hidden = YES;
+    
+    if (string)
+    {
+        CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 30, stringWidth, stringHeight);
+    }
+    
+    self.stringLabel.hidden = NO;
+	self.stringLabel.text = string;
+	self.stringLabel.frame = labelRect;
+    
+    stringWidth = 240;
+    stringHeight = 20;
+    if (subtitle) {
+        CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 82, stringWidth, stringHeight);
+    }
+    
+    self.subtitleLabel.hidden = NO;
+    self.subtitleLabel.text = subtitle;
+    self.subtitleLabel.frame = labelRect;
+    
+    self.loadingView.hidden = NO;
+    CGFloat originX = (kHudWidth / 2) - (200 / 2);
+    self.loadingView.frame = CGRectMake(originX, 120, 200, 17);
+    
+    UIImageView *loadingBackgroundView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, self.loadingView.frame.size.width, self.loadingView.frame.size.height)];
+    loadingBackgroundView.image = [UIImage imageNamed:@"progressBarBg"];
+    [self.loadingView addSubview:loadingBackgroundView];
+    [loadingBackgroundView release];
+    
+    self.loadingBarView.frame = CGRectMake(- self.loadingView.frame.size.width, 0, self.loadingView.frame.size.width, self.loadingView.frame.size.height);
+    [self.loadingView addSubview:loadingBarView];
+    
+    UIImageView *loadingShadowView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, self.loadingView.frame.size.width, self.loadingView.frame.size.height)];
+    loadingShadowView.image = [UIImage imageNamed:@"progressBarShadow"];
+    [self.loadingView addSubview:loadingShadowView];
+    [loadingShadowView release];
+}
+
+- (void)setProgressBar:(CGFloat)progressBar
+{
+    createBlockSafeSelf();
+    if (self.loadingBarView) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            _progressBar = MAX(0, MIN(1, progressBar));
+            CGFloat origin = (_progressBar * blockSafeSelf.loadingBarView.frame.size.width) - blockSafeSelf.loadingBarView.frame.size.width;
+            CGRect frame = CGRectMake(origin, blockSafeSelf.loadingBarView.frame.origin.y, blockSafeSelf.loadingBarView.frame.size.width, blockSafeSelf.loadingBarView.frame.size.height);
+            [UIView animateWithDuration:0.2 animations:^{
+                blockSafeSelf.loadingBarView.frame = frame;
+            } completion:^(BOOL finished) {
+                if (finished)
+                {
+                    
+                }
+            }];
+        });
+    }
+}
+
 - (void)setFadeOutTimer:(NSTimer *)newTimer
-{    
+{
     if (fadeOutTimer)
-    {      
+    {
         [fadeOutTimer invalidate];
         [fadeOutTimer release];
         fadeOutTimer = nil;
@@ -221,37 +551,36 @@
 
 - (void)registerNotifications
 {
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
-                                                 name:UIApplicationDidChangeStatusBarOrientationNotification 
-                                               object:nil];  
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
+                                                 name:UIApplicationDidChangeStatusBarOrientationNotification
+                                               object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardWillHideNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardDidHideNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardWillShowNotification
                                                object:nil];
     
-    [[NSNotificationCenter defaultCenter] addObserver:self 
-                                             selector:@selector(positionHUD:) 
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(positionHUD:)
                                                  name:UIKeyboardDidShowNotification
                                                object:nil];
 }
 
 - (void)positionHUD:(NSNotification*)notification
-{    
+{
     CGFloat keyboardHeight;
     double animationDuration;
-    
     UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
     
     if (notification)
@@ -307,37 +636,59 @@
     CGFloat posX = orientationFrame.size.width / 2;
     
     CGPoint newCenter;
-    CGFloat rotateAngle;
+    CGFloat rotateAngle=0.0;
     
-    switch (orientation)
-    { 
-        case UIInterfaceOrientationPortraitUpsideDown:
-            rotateAngle = M_PI; 
-            newCenter = CGPointMake(posX, orientationFrame.size.height - posY);
-            break;
-        case UIInterfaceOrientationLandscapeLeft:
-            rotateAngle = -M_PI / 2.0f;
-            newCenter = CGPointMake(posY, posX);
-            break;
-        case UIInterfaceOrientationLandscapeRight:
-            rotateAngle = M_PI / 2.0f;
-            newCenter = CGPointMake(orientationFrame.size.height - posY, posX);
-            break;
-        default: // as UIInterfaceOrientationPortrait
-            rotateAngle = 0.0;
-            newCenter = CGPointMake(posX, posY);
-            break;
-    } 
-    
+    if (!self.ignoreDeviceRotation) {
+        switch (orientation)
+        {
+            case UIInterfaceOrientationPortraitUpsideDown:
+                rotateAngle = M_PI;
+                newCenter = CGPointMake(posX, orientationFrame.size.height - posY);
+                break;
+            case UIInterfaceOrientationLandscapeLeft:
+            {
+                if (iPhone) {
+                    rotateAngle = 0.0;//-M_PI / 2.0f;
+                    newCenter = CGPointMake(posX, posY);//CGPointMake(posY, posX);
+                }else{
+                    rotateAngle = -M_PI / 2.0f;
+                    newCenter = CGPointMake(posY, posX);
+                }
+                
+            }
+                break;
+            case UIInterfaceOrientationLandscapeRight:
+            {
+                if(iPhone){
+                    rotateAngle =  0.0;//M_PI / 2.0f;
+                    newCenter = CGPointMake(posX, orientationFrame.size.height - posY);//CGPointMake(orientationFrame.size.height - posY, posX);
+                }else{
+                    rotateAngle =  M_PI / 2.0f;
+                    newCenter = CGPointMake(orientationFrame.size.height - posY, posX);
+                }
+            }
+                break;
+            default: // as UIInterfaceOrientationPortrait
+                rotateAngle = 0.0;
+                newCenter = CGPointMake(posX, posY);
+                break;
+        }
+    }else{
+        if (UIInterfaceOrientationIsPortrait(orientation)) {
+            newCenter=CGPointMake((orientationFrame.size.height-self.hudView.frame.size.width)/2, (orientationFrame.size.width-self.hudView.frame.size.height)/2);
+        }else{
+            newCenter=CGPointMake((orientationFrame.size.width-self.hudView.frame.size.width)/2, (orientationFrame.size.height-self.hudView.frame.size.height)/2);
+        }
+    }
     if (notification)
     {
-        [UIView animateWithDuration:animationDuration 
-                              delay:0 
-                            options:UIViewAnimationOptionAllowUserInteraction 
+        [UIView animateWithDuration:animationDuration
+                              delay:0
+                            options:UIViewAnimationOptionAllowUserInteraction
                          animations:^{
                              [self moveToPoint:newCenter rotateAngle:rotateAngle];
                          } completion:NULL];
-    } 
+    }
     else
     {
         [self moveToPoint:newCenter rotateAngle:rotateAngle];
@@ -347,7 +698,7 @@
 
 - (void)moveToPoint:(CGPoint)newCenter rotateAngle:(CGFloat)angle
 {
-    self.hudView.transform = CGAffineTransformMakeRotation(angle); 
+    self.hudView.transform = CGAffineTransformMakeRotation(angle);
     self.hudView.center = newCenter;
 }
 
@@ -355,90 +706,410 @@
 
 - (void)showWithStatus:(NSString *)string maskType:(MNBProgressHUDMaskType)hudMaskType
 {
-	self.fadeOutTimer = nil;
-	
-	self.imageView.hidden = YES;
-    self.maskType = hudMaskType;
-	
-	[self setStatus:string];
-	[self.spinnerView startAnimating];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        self.fadeOutTimer = nil;
+        
+        self.imageView.hidden = YES;
+        self.maskType = hudMaskType;
+        
+        [self setStatus:string];
+        [self.spinnerView startAnimating];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        createBlockSafeSelf();
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:^(BOOL finished) {
+                                 if(blockSafeSelf.showCallback){
+                                     blockSafeSelf.showCallback(finished);
+                                     blockSafeSelf.showCallback=nil;
+                                 }
+                             }];
+        }
+        
+        [self setNeedsDisplay];
+    });
+}
+
+- (void)showMNStyleWithStatus:(NSString *)string maskType:(MNBProgressHUDMaskType)hudMaskType
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        createBlockSafeSelf();
+        self.fadeOutTimer = nil;
+        
+        self.imageView.hidden = YES;
+        self.maskType = hudMaskType;
+        
+        [self setMNStyleStatus:string];
+        [self.spinnerView startAnimating];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:^(BOOL finished) {
+                                 if (finished) {
+                                     if(blockSafeSelf.showCallback){
+                                         blockSafeSelf.showCallback(finished);
+                                         blockSafeSelf.showCallback=nil;
+                                     }
+                                 }
+                             }];
+        }
+        
+        [self setNeedsDisplay];
+    });
+}
+
+- (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle maskType:(MNBProgressHUDMaskType)hudMaskType
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        createBlockSafeSelf();
+        self.fadeOutTimer = nil;
+        
+        self.imageView.hidden = YES;
+        self.maskType = hudMaskType;
+        
+        [self setLoadingViewStatus:string subtitle:subtitle];
+        [self.spinnerView stopAnimating];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:NULL];
+        }
+        
+        [self setNeedsDisplay];
+    });
     
-    if (self.maskType != MNBProgressHUDMaskTypeNone)
-    {
-        self.overlayView.userInteractionEnabled = YES;
-    }
-    else
-    {
-        self.overlayView.userInteractionEnabled = NO;
-    }
+}
+
+- (void)showNoCompletionWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds maskType:(MNBProgressHUDMaskType)hudMaskType
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        createBlockSafeSelf();
+        self.fadeOutTimer = nil;
+        [self.spinnerView stopAnimating];
+        
+        self.imageView.image = [UIImage imageNamed:@"msgAlertsIconsExp"];
+        self.imageView.hidden = NO;
+        
+        self.maskType = hudMaskType;
+        
+        [self setStatus:string subtitle:subtitle];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:^(BOOL finished) {
+                                 if (finished) {
+                                     dispatch_async(dispatch_get_main_queue(), ^{
+                                         blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+                                     });
+                                     if(blockSafeSelf.showCallback){
+                                         blockSafeSelf.showCallback(finished);
+                                         blockSafeSelf.showCallback=nil;
+                                     }
+                                 }
+                             }];
+        }
+        
+        [self setNeedsDisplay];
+    });
     
-    self.overlayView.hidden = NO;
-    [self positionHUD:nil];
-    
-	if (self.alpha != 1)
-    {
-        [self registerNotifications];
-		self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
-		
-		[UIView animateWithDuration:0.15
-							  delay:0
-							options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
-						 animations:^{	
-							 self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1/1.3, 1/1.3);
-                             self.alpha = 1;
-						 }
-						 completion:NULL];
-	}
-    
-    [self setNeedsDisplay];
+}
+
+- (void)showUsers:(NSArray *)users withStatus:(NSString *)status afterDelay:(NSTimeInterval)seconds maskType:(MNBProgressHUDMaskType)hudMaskType
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        createBlockSafeSelf()
+        self.fadeOutTimer = nil;
+        [self.spinnerView stopAnimating];
+        
+        self.imageView.image = [UIImage imageNamed:@"msgAlertsIconsExp"];
+        self.imageView.hidden = NO;
+        
+        self.maskType = hudMaskType;
+        
+        [self setUsers:users withStatus:status];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:^(BOOL finished) {
+                                 if (finished) {
+                                     dispatch_async(dispatch_get_main_queue(), ^{
+                                         blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+                                     });
+                                     if(blockSafeSelf.showCallback){
+                                         blockSafeSelf.showCallback(finished);
+                                         blockSafeSelf.showCallback=nil;
+                                     }
+                                 }
+                             }];
+        }
+        
+        [self setNeedsDisplay];
+    });
 }
 
 - (void)dismissWithStatus:(NSString *)string error:(BOOL)error
 {
-	[self dismissWithStatus:string error:error afterDelay:0.9];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self dismissWithStatus:string error:error afterDelay:kAfterDelay];
+    });
 }
 
 - (void)dismissWithStatus:(NSString *)string error:(BOOL)error afterDelay:(NSTimeInterval)seconds
 {
-    if (self.alpha != 1)
-    {
-        return;
-    }
-	
-	if(error)
-    {
-		self.imageView.image = [UIImage imageNamed:@"MNBProgressHUD.bundle/error.png"];
-    }
-	else
-    {
-		self.imageView.image = [UIImage imageNamed:@"MNBProgressHUD.bundle/success.png"];
-    }
-	
-	self.imageView.hidden = NO;
-	
-	[self setStatus:string];
-	
-	[self.spinnerView stopAnimating];
-    
-	self.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:self selector:@selector(dismiss) userInfo:nil repeats:NO];
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        if(error)
+        {
+            blockSafeSelf.imageView.image = [UIImage imageNamed:@"error"];
+        }
+        else
+        {
+            blockSafeSelf.imageView.image = [UIImage imageNamed:@"ok"];
+        }
+        
+        blockSafeSelf.imageView.hidden = NO;
+        
+        [self setStatus:string];
+        
+        [blockSafeSelf.spinnerView stopAnimating];
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
+}
+
+- (void)dismissMNStyleWithStatus:(NSString *)string subtitle:(NSString *)subtitle error:(BOOL)error{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self dismissMNStyleWithStatus:string subtitle:subtitle error:error afterDelay:kAfterDelay];
+    });
+}
+
+- (void)dismissMNStyleWithStatus:(NSString *)string subtitle:(NSString *)subtitle error:(BOOL)error afterDelay:(NSTimeInterval)seconds
+{
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        if(error)
+        {
+            blockSafeSelf.imageView.image = [UIImage imageNamed:@"error"];
+        }
+        else
+        {
+            blockSafeSelf.imageView.image = [UIImage imageNamed:@"ok"];
+        }
+        
+        blockSafeSelf.imageView.hidden = NO;
+        
+        [self setStatus:string subtitle:subtitle];
+        
+        [blockSafeSelf.spinnerView stopAnimating];
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
+}
+
+- (void)dismissLocalizationErrorWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
+{
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        blockSafeSelf.imageView.image = [UIImage imageNamed:@"msgAlertsIconsLoc"];
+        
+        blockSafeSelf.imageView.hidden = NO;
+        
+        [self setStatus:string subtitle:subtitle];
+        
+        [blockSafeSelf.spinnerView stopAnimating];
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
+}
+
+- (void)dismissNetworkErrorWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
+{
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        blockSafeSelf.imageView.image = [UIImage imageNamed:@"msgAlertsIconsNet"];
+        
+        blockSafeSelf.imageView.hidden = NO;
+        
+        [self setStatus:string subtitle:subtitle];
+        
+        [blockSafeSelf.spinnerView stopAnimating];
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
+}
+
+- (void)dismissNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
+{
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        blockSafeSelf.imageView.image = [UIImage imageNamed:@"cas_icono_guardados"];
+        
+        blockSafeSelf.imageView.hidden = NO;
+        
+        [self setStatus:string subtitle:subtitle];
+        
+        [blockSafeSelf.spinnerView stopAnimating];
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
 }
 
 - (void)dismiss
 {
-	[UIView animateWithDuration:0.15
-						  delay:0
-						options:UIViewAnimationCurveEaseIn | UIViewAnimationOptionAllowUserInteraction
-					 animations:^{	
-						 self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 0.8, 0.8);
-						 self.alpha = 0;
-					 }
-					 completion:^(BOOL finished){ 
-                         if (self.alpha == 0) {
-                             [[NSNotificationCenter defaultCenter] removeObserver:self];
-                             
-                             overlayView.hidden = YES;
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [UIView animateWithDuration:0.15
+                              delay:0
+                            options:UIViewAnimationCurveEaseIn | UIViewAnimationOptionAllowUserInteraction
+                         animations:^{
+                             blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 0.8, 0.8);
+                             blockSafeSelf.alpha = 0;
                          }
-                     }];
+                         completion:^(BOOL finished){
+                             if (blockSafeSelf.alpha == 0) {
+                                 [[NSNotificationCenter defaultCenter] removeObserver:self];
+                                 
+                                 overlayView.hidden = YES;
+                                 if (blockSafeSelf.callback) {
+                                     blockSafeSelf.callback(YES);
+                                 }
+                             }
+                         }];
+    });
 }
 
 #pragma mark - Getters
@@ -446,7 +1117,7 @@
 - (UIView *)hudView {
     if(!hudView) {
         hudView = [[UIView alloc] initWithFrame:CGRectZero];
-        hudView.layer.cornerRadius = 10;
+        hudView.layer.cornerRadius = 6;
 		hudView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.8];
         hudView.autoresizingMask = (UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleTopMargin |
                                     UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin);
@@ -468,18 +1139,39 @@
 		stringLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
 		stringLabel.font = [UIFont boldSystemFontOfSize:16];
 		stringLabel.shadowColor = [UIColor blackColor];
-		stringLabel.shadowOffset = CGSizeMake(0, -1);
+		stringLabel.shadowOffset = CGSizeMake(1, 1);
         stringLabel.numberOfLines = 0;
 		[self.hudView addSubview:stringLabel];
     }
     return stringLabel;
 }
 
+- (UILabel *)subtitleLabel
+{
+    if (subtitleLabel == nil)
+    {
+        subtitleLabel = [[UILabel alloc] initWithFrame:CGRectZero];
+        subtitleLabel.textColor = colorWithRGBA(255, 255, 255, 0.8);
+        subtitleLabel.backgroundColor = [UIColor clearColor];
+        subtitleLabel.adjustsFontSizeToFitWidth = YES;
+        subtitleLabel.textAlignment = NSTextAlignmentCenter;
+        subtitleLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
+        subtitleLabel.font = [UIFont systemFontOfSize:13];
+        subtitleLabel.shadowColor = [UIColor blackColor];
+        subtitleLabel.shadowOffset = CGSizeMake(1, 1);
+        subtitleLabel.numberOfLines = 1;
+        [self.hudView addSubview:subtitleLabel];
+    }
+    
+    return subtitleLabel;
+}
+
 - (UIImageView *)imageView
 {
     if (imageView == nil)
     {
-        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 28, 28)];
+        imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 56, 50)];
+        imageView.contentMode = UIViewContentModeCenter;
 		[self.hudView addSubview:imageView];
     }
     
@@ -498,8 +1190,40 @@
     return spinnerView;
 }
 
+- (UIView *)loadingView
+{
+    if (loadingView == nil) {
+        loadingView = [[UIView alloc] initWithFrame:CGRectZero];
+        loadingView.clipsToBounds = YES;
+        loadingView.backgroundColor = [UIColor clearColor];
+        [[loadingView layer] setCornerRadius:8];
+        [self.hudView addSubview:loadingView];
+    }
+    return loadingView;
+}
+
+- (UIView *)loadingBarView
+{
+    if (loadingBarView == nil) {
+        loadingBarView = [[UIView alloc] initWithFrame:CGRectZero];
+        loadingBarView.backgroundColor = colorWithRGB(136, 182, 1);
+    }
+    return loadingBarView;
+}
+
+- (UIView *)avatarsContainer
+{
+    if (avatarsContainer == nil) {
+        avatarsContainer = [[UIView alloc] initWithFrame:CGRectZero];
+        avatarsContainer.backgroundColor = [UIColor blackColor];
+        [self.hudView addSubview:avatarsContainer];
+    }
+    
+    return avatarsContainer;
+}
+
 - (CGFloat)visibleKeyboardHeight
-{    
+{
     NSAutoreleasePool *autoreleasePool = [[NSAutoreleasePool alloc] init];
     
     UIWindow *keyboardWindow = nil;
@@ -511,15 +1235,15 @@
             break;
         }
     }
-
-    // Locate UIKeyboard.  
+    
+    // Locate UIKeyboard.
     UIView *foundKeyboard = nil;
     for (UIView *possibleKeyboard in [keyboardWindow subviews]) {
         
         // iOS 4 sticks the UIKeyboard inside a UIPeripheralHostView.
         if ([[possibleKeyboard description] hasPrefix:@"<UIPeripheralHostView"]) {
             possibleKeyboard = [[possibleKeyboard subviews] objectAtIndex:0];
-        }                                                                                
+        }
         
         if ([[possibleKeyboard description] hasPrefix:@"<UIKeyboard"]) {
             foundKeyboard = possibleKeyboard;
@@ -528,7 +1252,7 @@
     }
     
     [autoreleasePool release];
-        
+    
     if (foundKeyboard && foundKeyboard.bounds.size.height > 100)
     {
         return foundKeyboard.bounds.size.height;
@@ -540,15 +1264,21 @@
 #pragma mark - Memory Management
 
 - (void)dealloc
-{	
+{
 	self.fadeOutTimer = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     
     [hudView release];
     [stringLabel release];
+    [stringLabel release];
     [imageView release];
     [spinnerView release];
     [overlayView release];
+    [loadingView release];
+    [loadingBarView release];
+    [_callback release];
+    [_showCallback release];
+    [avatarsContainer release];
     
     [super dealloc];
 }
