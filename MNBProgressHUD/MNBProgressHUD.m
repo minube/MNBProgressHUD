@@ -18,7 +18,6 @@
 #define createBlockSafeSelf() __block typeof(self) blockSafeSelf = self;
 
 @interface MNBProgressHUD ()
-@property (nonatomic, retain) NSTimer *fadeOutTimer;
 @property (copy, nonatomic) DismissCompletionCallback callback;
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;

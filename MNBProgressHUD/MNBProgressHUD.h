@@ -29,6 +29,7 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 @property (nonatomic, assign) BOOL ignoreDeviceRotation;
 @property (nonatomic, readonly) UIView *overlayView;
 @property (nonatomic, assign) CGFloat progressBar;
+@property (nonatomic, retain) NSTimer *fadeOutTimer;
 @property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (copy, nonatomic) ShowCompletionCallback showCallback;
 
