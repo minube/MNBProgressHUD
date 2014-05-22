@@ -8,7 +8,7 @@ Pod::Spec.new do |s|
   s.platform     = :ios, '6.0'
   s.source_files = 'MNBProgressHUD/**/*.{h,m}'
   s.frameworks   = 'UIKit'
-  s.requires_arc = true
+  s.requires_arc = false
   s.license      = {
     :type => 'MIT',
     :text => <<-LICENSE
