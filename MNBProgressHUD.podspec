@@ -7,7 +7,9 @@ Pod::Spec.new do |s|
   s.source       = { :git => 'https://github.com/minube/MNBProgressHUD.git', :tag => s.version.to_s }
   s.platform     = :ios, '6.0'
   s.source_files = 'MNBProgressHUD/**/*.*'
-  s.preserve_path = "MNBProgressHUD/*.bundle"
+  bundle_files = 'MNBProgressHUD/MNBProgressHUD.bundle/*.*'
+  s.exclude_files = bundle_files
+  s.ios.resource_bundle = { 'MNBProgressHUD' => bundle_files }
   s.frameworks   = 'UIKit'
   s.requires_arc = false
   s.license      = {

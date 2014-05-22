@@ -7,6 +7,9 @@
 #import <UIKit/UIKit.h>
 #import <AvailabilityMacros.h>
 
+#define colorWithRGB(r, g, b) [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:1.0]
+#define colorWithRGBA(r, g, b, a) [UIColor colorWithRed:r/255.0 green:g/255.0 blue:b/255.0 alpha:a]
+
 typedef NS_ENUM(NSUInteger, MNBProgressHUDMaskType) {
     MNBProgressHUDMaskTypeNone, // allow user interactions while HUD is displayed
     MNBProgressHUDMaskTypeClear, // don't allow
