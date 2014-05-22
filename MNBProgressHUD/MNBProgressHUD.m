@@ -12,21 +12,15 @@
 #define kHudHeight 170
 #define kHudHeightOneLine 140
 
+#define iPad    (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
+#define iPhone  (UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone)
+
 #define createBlockSafeSelf() __block typeof(self) blockSafeSelf = self;
 
 @interface MNBProgressHUD ()
 
 @property (nonatomic, readwrite) MNBProgressHUDMaskType maskType;
 @property (nonatomic, retain) NSTimer *fadeOutTimer;
-
-@property (nonatomic, readonly) UIView *hudView;
-@property (nonatomic, readonly) UILabel *stringLabel;
-@property (nonatomic, readonly) UILabel *subtitleLabel;
-@property (nonatomic, readonly) UIImageView *imageView;
-@property (nonatomic, readonly) UIActivityIndicatorView *spinnerView;
-@property (nonatomic, readonly) UIView *loadingView;
-@property (nonatomic, readonly) UIView *loadingBarView;
-@property (nonatomic, readonly) UIView *avatarsContainer;
 @property (copy, nonatomic) DismissCompletionCallback callback;
 
 @property (nonatomic, readonly) CGFloat visibleKeyboardHeight;
@@ -362,108 +356,6 @@
     self.subtitleLabel.hidden = NO;
     self.subtitleLabel.text = subtitle;
     self.subtitleLabel.frame = labelRect;
-}
-
-- (void)setUsers:(NSArray *)users withStatus:(NSString *)string
-{
-    if (self.loadingView) {
-        self.loadingView.hidden = YES;
-    }
-    
-    CGFloat stringWidth = 258;
-    CGFloat stringHeight = 40;
-    CGRect labelRect = CGRectZero;
-    
-    self.hudView.bounds = CGRectMake(0, 0, 300, 150);
-    
-    self.imageView.hidden = YES;
-    self.subtitleLabel.hidden = YES;
-    
-    if (string)
-    {
-        CGFloat originX = (300 / 2) - (stringWidth / 2);
-        labelRect = CGRectMake(originX, 20, stringWidth, stringHeight);
-    }
-    
-    self.stringLabel.hidden = NO;
-	self.stringLabel.text = string;
-    self.stringLabel.backgroundColor = [UIColor clearColor];
-	self.stringLabel.frame = labelRect;
-    
-    if (users.count > 0) {
-        
-        // Add avatars -  max 4
-        int limit = 4;
-        if (users.count < limit) {
-            limit = users.count;
-        }
-        
-        int numberOfViews = limit;
-        if (users.count > 4) {
-            numberOfViews = 5;
-        }
-        
-        CGFloat viewWidth = 0.0f;
-        viewWidth = (50 * numberOfViews) + (numberOfViews - 1) * 2.0f;
-        CGFloat originX = (300 / 2) - (viewWidth / 2);
-        self.avatarsContainer.frame = CGRectMake(originX, CGRectGetMaxY(self.stringLabel.frame) + 20, viewWidth, 50);
-        
-        float gap = 2.0f;
-        for (int i = 0; i < limit; i++) {
-            InvitedUserEntity *contact = [users objectAtIndex:i];
-            UIImageView *avatarView = [[UIImageView alloc] initWithFrame:CGRectMake(0 + (gap * i) + (50 * i), 0, 50, 50)];
-            avatarView.clipsToBounds = YES;
-            avatarView.backgroundColor = colorWithRGBA(255, 255, 255, 0.3);
-            switch (contact.invitedUserType) {
-                case InvitedUserTypeMinube:
-                    [avatarView setImageWithURL:contact.invitedUserAvatarURL completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
-                        
-                    }];
-                    break;
-                case InvitedUserTypeFacebook:
-                    [avatarView setImageWithURL:contact.invitedUserFacebookAvatar completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
-                        
-                    }];
-                    break;
-                case InvitedUserTypeTwitter:
-                    [avatarView setImageWithURL:contact.invitedUserAvatarURL completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType) {
-                        
-                    }];
-                    break;
-                case InvitedUserTypeABook:
-                    if (contact.invitedUserAddressbookImageAvatar) {
-                        avatarView.image = [UIImage imageWithData:contact.invitedUserAddressbookImageAvatar];
-                    } else {
-                        avatarView.image = nil;
-                    }
-                    break;
-                default:
-                    break;
-            };
-            
-            [avatarsContainer addSubview:avatarView];
-            [avatarView release];
-        }
-        if (users.count > 4) {
-            UIView *moreAvatars = [[UIView alloc] initWithFrame:CGRectMake(208, 0, 50, 50)];
-            moreAvatars.backgroundColor = colorWithRGB(29, 34, 41);
-            
-            UILabel *moreAvatarsLabel = [[UILabel alloc] initWithFrame:CGRectMake(8, 8, 34, 35)];
-            moreAvatarsLabel.backgroundColor = colorWithRGB(29, 34, 41);
-            moreAvatarsLabel.textAlignment = NSTextAlignmentCenter;
-            moreAvatarsLabel.textColor = colorWithRGB(97, 101, 106);
-            moreAvatarsLabel.numberOfLines = 2;
-            moreAvatarsLabel.text = [NSString stringWithFormat:NSLocalizedString(@"SharePoiByMinubeActionSheetMoreAvatars", nil), users.count - 4];
-            moreAvatarsLabel.font = [UIFont boldSystemFontOfSize:15];
-            moreAvatarsLabel.minimumScaleFactor = 15;
-            moreAvatarsLabel.adjustsFontSizeToFitWidth = YES;
-            [moreAvatars addSubview:moreAvatarsLabel];
-            [moreAvatarsLabel release];
-            
-            [avatarsContainer addSubview:moreAvatars];
-            [moreAvatars release];
-        }
-    }
 }
 
 - (void)setLoadingViewStatus:(NSString *)string subtitle:(NSString *)subtitle
@@ -899,61 +791,6 @@
         [self setNeedsDisplay];
     });
     
-}
-
-- (void)showUsers:(NSArray *)users withStatus:(NSString *)status afterDelay:(NSTimeInterval)seconds maskType:(MNBProgressHUDMaskType)hudMaskType
-{
-    dispatch_async(dispatch_get_main_queue(), ^{
-        createBlockSafeSelf()
-        self.fadeOutTimer = nil;
-        [self.spinnerView stopAnimating];
-        
-        self.imageView.image = [UIImage imageNamed:@"msgAlertsIconsExp"];
-        self.imageView.hidden = NO;
-        
-        self.maskType = hudMaskType;
-        
-        [self setUsers:users withStatus:status];
-        
-        if (self.maskType != MNBProgressHUDMaskTypeNone)
-        {
-            self.overlayView.userInteractionEnabled = YES;
-        }
-        else
-        {
-            self.overlayView.userInteractionEnabled = NO;
-        }
-        
-        self.overlayView.hidden = NO;
-        [self positionHUD:nil];
-        
-        if (self.alpha != 1)
-        {
-            [self registerNotifications];
-            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
-            
-            [UIView animateWithDuration:0.15
-                                  delay:0
-                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
-                             animations:^{
-                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
-                                 blockSafeSelf.alpha = 1;
-                             }
-                             completion:^(BOOL finished) {
-                                 if (finished) {
-                                     dispatch_async(dispatch_get_main_queue(), ^{
-                                         blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
-                                     });
-                                     if(blockSafeSelf.showCallback){
-                                         blockSafeSelf.showCallback(finished);
-                                         blockSafeSelf.showCallback=nil;
-                                     }
-                                 }
-                             }];
-        }
-        
-        [self setNeedsDisplay];
-    });
 }
 
 - (void)dismissWithStatus:(NSString *)string error:(BOOL)error

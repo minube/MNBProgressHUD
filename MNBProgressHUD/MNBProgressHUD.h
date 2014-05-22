@@ -20,7 +20,14 @@ typedef void (^ShowCompletionCallback) (BOOL finished);
 typedef void (^DismissCompletionCallback) (BOOL finished);
 
 @interface MNBProgressHUD : UIView
-
+@property (nonatomic, readonly) UIImageView *imageView;
+@property (nonatomic, readonly) UILabel *stringLabel;
+@property (nonatomic, readonly) UIView *hudView;
+@property (nonatomic, readonly) UILabel *subtitleLabel;
+@property (nonatomic, readonly) UIActivityIndicatorView *spinnerView;
+@property (nonatomic, readonly) UIView *loadingView;
+@property (nonatomic, readonly) UIView *loadingBarView;
+@property (nonatomic, readonly) UIView *avatarsContainer;
 @property (nonatomic, assign) BOOL ignoreDeviceRotation;
 @property (nonatomic, readonly) UIView *overlayView;
 @property (nonatomic, assign) CGFloat progressBar;
