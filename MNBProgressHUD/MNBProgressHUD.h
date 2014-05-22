@@ -42,6 +42,8 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 - (void)showSuccessWithStatus:(NSString *)string;
 - (void)setStatus:(NSString *)string; // change the HUD loading status while it's showing
 - (void)positionHUD:(NSNotification*)notification;
+- (void)registerNotifications;
+
 // minube style HUDS
 - (void)showMNStyle;
 - (void)showMNStyleWithStatus:(NSString *)status;
