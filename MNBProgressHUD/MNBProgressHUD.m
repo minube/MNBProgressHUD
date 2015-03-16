@@ -44,9 +44,9 @@
 
 + (MNBProgressHUD *)progressViewInView:(UIView *)view
 {
-	MNBProgressHUD *progressView = [[MNBProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    MNBProgressHUD *progressView = [[MNBProgressHUD alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     [view addSubview:progressView->overlayView];
-	
+    
     return [progressView autorelease];
 }
 
@@ -57,12 +57,12 @@
         overlayView = [[UIView alloc] initWithFrame:frame];
         [overlayView addSubview:self];
         overlayView.hidden=YES;
-		self.userInteractionEnabled = NO;
+        self.userInteractionEnabled = NO;
         self.backgroundColor = [UIColor clearColor];
-		self.alpha = 0;
+        self.alpha = 0;
         self.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     }
-	
+    
     return self;
 }
 
@@ -70,12 +70,12 @@
 
 - (void)show
 {
-	[self showWithStatus:nil];
+    [self showWithStatus:nil];
 }
 
 - (void)showMNStyle
 {
-	[self showMNStyleWithStatus:nil];
+    [self showMNStyleWithStatus:nil];
 }
 
 - (void)showWithStatus:(NSString *)status
@@ -127,11 +127,16 @@
     [self dismissMNStyleWithError:string subtitle:subtitle afterDelay:kAfterDelay];
 }
 
+- (void)showMNStyleWithStatus:(NSString *)status withImage:(BOOL)image {
+    [self showMNStyleWithStatus:status maskType:MNBProgressHUDMaskTypeNone withOutImage:image];
+    [self dismissMNStyleAfterDelay:1.5];
+}
+
 #pragma mark - Dismiss Methods
 
 - (void)dismissWithSuccess:(NSString*)successString
 {
-	[self dismissWithStatus:successString error:NO];
+    [self dismissWithStatus:successString error:NO];
 }
 
 - (void)dismissWithSuccess:(NSString *)successString afterDelay:(NSTimeInterval)seconds
@@ -141,7 +146,7 @@
 
 - (void)dismissWithError:(NSString*)errorString
 {
-	[self dismissWithStatus:errorString error:YES];
+    [self dismissWithStatus:errorString error:YES];
 }
 
 - (void)dismissWithError:(NSString *)errorString afterDelay:(NSTimeInterval)seconds
@@ -151,7 +156,7 @@
 
 - (void)dismissMNStyleWithSuccess:(NSString*)successString subtitle:(NSString *)subtitle
 {
-	[self dismissMNStyleWithStatus:successString subtitle:subtitle error:NO];
+    [self dismissMNStyleWithStatus:successString subtitle:subtitle error:NO];
 }
 
 - (void)dismissMNStyleWithSuccess:(NSString *)successString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
@@ -161,7 +166,7 @@
 
 - (void)dismissMNStyleWithError:(NSString*)errorString subtitle:(NSString *)subtitle
 {
-	[self dismissMNStyleWithStatus:errorString subtitle:subtitle error:YES];
+    [self dismissMNStyleWithStatus:errorString subtitle:subtitle error:YES];
 }
 
 - (void)dismissMNStyleWithError:(NSString *)errorString subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
@@ -257,22 +262,22 @@
             labelRect = CGRectMake(0, 66, hudWidth, stringHeight);
         }
     }
-	
-	self.hudView.bounds = CGRectMake(0, 0, hudWidth, hudHeight);
-	
-	self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 36);
-	
-	self.stringLabel.hidden = NO;
-	self.stringLabel.text = string;
-	self.stringLabel.frame = labelRect;
-	
-	if (string)
+    
+    self.hudView.bounds = CGRectMake(0, 0, hudWidth, hudHeight);
+    
+    self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 36);
+    
+    self.stringLabel.hidden = NO;
+    self.stringLabel.text = string;
+    self.stringLabel.frame = labelRect;
+    
+    if (string)
     {
-		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, 40.5);
+        self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, 40.5);
     }
-	else
+    else
     {
-		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, ceil(self.hudView.bounds.size.height / 2) + 0.5);
+        self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, ceil(self.hudView.bounds.size.height / 2) + 0.5);
     }
 }
 
@@ -295,27 +300,63 @@
         CGFloat originX = (kHudWidth / 2) - (stringWidth / 2);
         labelRect = CGRectMake(originX, 105, stringWidth, stringHeight);
     }
-	
-	self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeight);
-	
-	self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 36);
-	
-	self.stringLabel.hidden = NO;
-	self.stringLabel.text = string;
-	self.stringLabel.frame = labelRect;
-	
-	if (string)
+    
+    self.hudView.bounds = CGRectMake(0, 0, kHudWidth, kHudHeight);
+    
+    self.imageView.center = CGPointMake(CGRectGetWidth(self.hudView.bounds) / 2, 36);
+    
+    self.stringLabel.hidden = NO;
+    self.stringLabel.text = string;
+    self.stringLabel.frame = labelRect;
+    
+    if (string)
     {
-		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2), 65);
+        self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2), 65);
     }
-	else
+    else
     {
-		self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, ceil(self.hudView.bounds.size.height / 2) + 0.5);
+        self.spinnerView.center = CGPointMake(ceil(CGRectGetWidth(self.hudView.bounds) / 2) + 0.5, ceil(self.hudView.bounds.size.height / 2) + 0.5);
     }
     
     //DebugLog(@"Frame despues del setStatus");
     //LogFrame(self.hudView.frame);
 }
+
+- (void)setMNStyleStatus:(NSString *)string withOutImage:(BOOL)image
+{
+    if (self.subtitleLabel) {
+        self.subtitleLabel.hidden = YES;
+    }
+    
+    if (self.loadingView) {
+        self.loadingView.hidden = YES;
+    }
+    
+    CGFloat stringWidth = 180;
+    CGFloat stringHeight = 60;
+    CGRect labelRect = CGRectZero;
+    
+    CGFloat hudWidth = 220;
+    CGFloat hudHeight = 140;
+    
+    if (string)
+    {
+        CGFloat originX = (hudWidth / 2) - (stringWidth / 2);
+        labelRect = CGRectMake(originX, 40, stringWidth, stringHeight);
+    }
+    
+    self.hudView.bounds = CGRectMake(0, 0, hudWidth, hudHeight);
+    
+    
+    self.stringLabel.hidden = NO;
+    self.stringLabel.text = string;
+    self.stringLabel.frame = labelRect;
+    
+    
+    //DebugLog(@"Frame despues del setStatus");
+    //LogFrame(self.hudView.frame);
+}
+
 
 - (void)setStatus:(NSString *)string subtitle:(NSString *)subtitle
 {
@@ -341,8 +382,8 @@
     }
     
     self.stringLabel.hidden = NO;
-	self.stringLabel.text = string;
-	self.stringLabel.frame = labelRect;
+    self.stringLabel.text = string;
+    self.stringLabel.frame = labelRect;
     
     stringWidth = 240;
     stringHeight = 20;
@@ -372,8 +413,8 @@
     }
     
     self.stringLabel.hidden = NO;
-	self.stringLabel.text = string;
-	self.stringLabel.frame = labelRect;
+    self.stringLabel.text = string;
+    self.stringLabel.frame = labelRect;
     
     stringWidth = 240;
     stringHeight = 20;
@@ -691,6 +732,55 @@
     });
 }
 
+- (void)showMNStyleWithStatus:(NSString *)string maskType:(MNBProgressHUDMaskType)hudMaskType withOutImage:(BOOL)image
+{
+    dispatch_async(dispatch_get_main_queue(), ^{
+        createBlockSafeSelf();
+        self.fadeOutTimer = nil;
+        
+        self.imageView.hidden = YES;
+        self.maskType = hudMaskType;
+        
+        [self setMNStyleStatus:string withOutImage:image];
+        
+        if (self.maskType != MNBProgressHUDMaskTypeNone)
+        {
+            self.overlayView.userInteractionEnabled = YES;
+        }
+        else
+        {
+            self.overlayView.userInteractionEnabled = NO;
+        }
+        
+        self.overlayView.hidden = NO;
+        [self positionHUD:nil];
+        
+        if (self.alpha != 1)
+        {
+            [self registerNotifications];
+            self.hudView.transform = CGAffineTransformScale(self.hudView.transform, 1.3, 1.3);
+            
+            [UIView animateWithDuration:0.15
+                                  delay:0
+                                options:UIViewAnimationOptionAllowUserInteraction | UIViewAnimationCurveEaseOut | UIViewAnimationOptionBeginFromCurrentState
+                             animations:^{
+                                 blockSafeSelf.hudView.transform = CGAffineTransformScale(blockSafeSelf.hudView.transform, 1/1.3, 1/1.3);
+                                 blockSafeSelf.alpha = 1;
+                             }
+                             completion:^(BOOL finished) {
+                                 if (finished) {
+                                     if(blockSafeSelf.showCallback){
+                                         blockSafeSelf.showCallback(finished);
+                                         blockSafeSelf.showCallback=nil;
+                                     }
+                                 }
+                             }];
+        }
+        
+        [self setNeedsDisplay];
+    });
+}
+
 - (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle maskType:(MNBProgressHUDMaskType)hudMaskType
 {
     dispatch_async(dispatch_get_main_queue(), ^{
@@ -859,6 +949,18 @@
         blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
     });
 }
+- (void)dismissMNStyleAfterDelay:(NSTimeInterval)seconds
+{
+    createBlockSafeSelf();
+    dispatch_async(dispatch_get_main_queue(), ^{
+        if (blockSafeSelf.alpha != 1)
+        {
+            return;
+        }
+        
+        blockSafeSelf.fadeOutTimer = [NSTimer scheduledTimerWithTimeInterval:seconds target:blockSafeSelf selector:@selector(dismiss) userInfo:nil repeats:NO];
+    });
+}
 
 - (void)dismissLocalizationErrorWithStatus:(NSString *)string subtitle:(NSString *)subtitle afterDelay:(NSTimeInterval)seconds
 {
@@ -953,7 +1055,7 @@
     if(!hudView) {
         hudView = [[UIView alloc] initWithFrame:CGRectZero];
         hudView.layer.cornerRadius = 6;
-		hudView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.8];
+        hudView.backgroundColor = [UIColor colorWithWhite:0 alpha:0.8];
         hudView.autoresizingMask = (UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleTopMargin |
                                     UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleLeftMargin);
         
@@ -967,16 +1069,16 @@
     if (stringLabel == nil)
     {
         stringLabel = [[UILabel alloc] initWithFrame:CGRectZero];
-		stringLabel.textColor = [UIColor whiteColor];
-		stringLabel.backgroundColor = [UIColor clearColor];
-		stringLabel.adjustsFontSizeToFitWidth = YES;
-		stringLabel.textAlignment = NSTextAlignmentCenter;
-		stringLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
-		stringLabel.font = [UIFont boldSystemFontOfSize:16];
-		stringLabel.shadowColor = [UIColor blackColor];
-		stringLabel.shadowOffset = CGSizeMake(1, 1);
+        stringLabel.textColor = [UIColor whiteColor];
+        stringLabel.backgroundColor = [UIColor clearColor];
+        stringLabel.adjustsFontSizeToFitWidth = YES;
+        stringLabel.textAlignment = NSTextAlignmentCenter;
+        stringLabel.baselineAdjustment = UIBaselineAdjustmentAlignCenters;
+        stringLabel.font = [UIFont boldSystemFontOfSize:16];
+        stringLabel.shadowColor = [UIColor blackColor];
+        stringLabel.shadowOffset = CGSizeMake(1, 1);
         stringLabel.numberOfLines = 0;
-		[self.hudView addSubview:stringLabel];
+        [self.hudView addSubview:stringLabel];
     }
     return stringLabel;
 }
@@ -1007,7 +1109,7 @@
     {
         imageView = [[UIImageView alloc] initWithFrame:CGRectMake(0, 0, 56, 50)];
         imageView.contentMode = UIViewContentModeCenter;
-		[self.hudView addSubview:imageView];
+        [self.hudView addSubview:imageView];
     }
     
     return imageView;
@@ -1018,9 +1120,9 @@
     if (spinnerView == nil)
     {
         spinnerView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleWhiteLarge];
-		spinnerView.hidesWhenStopped = YES;
-		spinnerView.bounds = CGRectMake(0, 0, 37, 37);
-		[self.hudView addSubview:spinnerView];
+        spinnerView.hidesWhenStopped = YES;
+        spinnerView.bounds = CGRectMake(0, 0, 37, 37);
+        [self.hudView addSubview:spinnerView];
     }
     return spinnerView;
 }
@@ -1100,7 +1202,7 @@
 
 - (void)dealloc
 {
-	self.fadeOutTimer = nil;
+    self.fadeOutTimer = nil;
     [[NSNotificationCenter defaultCenter] removeObserver:self];
     
     [hudView release];

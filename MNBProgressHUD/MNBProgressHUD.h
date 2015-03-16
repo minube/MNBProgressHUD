@@ -56,6 +56,7 @@ typedef void (^DismissCompletionCallback) (BOOL finished);
 - (void)showNoCompletionWithStatus:(NSString *)status subtitle:(NSString *)subtitle;
 - (void)showLoadingWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
 - (void)showNoPlacesWithStatus:(NSString *)string subtitle:(NSString *)subtitle;
+- (void)showMNStyleWithStatus:(NSString *)status withImage:(BOOL)image;
 
 - (void)dismiss; // simply dismiss the HUD with a fade+scale out animation
 - (void)dismissWithSuccess:(NSString *)successString; // also displays the success icon image
